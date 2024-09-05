@@ -40,6 +40,6 @@ The project is based on the library [pyrad](https://github.com/pyradius/pyrad.gi
 
       | Attribute | Type | Value | Description |
       | :-- | :--: | :-----: | :---------- |
-      | `Hass-Group` | string | system-users <br> system-admin | Группа пользователя |
-      | `Hass-Local-Only` | byte | 0 <br> 1 | Вход только локально <br> (Defaults to 0) |
-      | `Hass-Is-Active` | byte  | 0 <br> 1 | Активировать учетную запись пользователя <br> (Defaults to 1) |
+      | `Hass-Group` | string | system-users <br> system-admin | User group |
+      | `Hass-Local-Only` | byte | 0 <br> 1 | Local login only <br> (Defaults to 0) |
+      | `Hass-Is-Active` | byte  | 0 <br> 1 | Activate user account <br> (Defaults to 1) |
