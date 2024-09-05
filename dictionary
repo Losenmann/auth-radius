@@ -1,0 +1,9 @@
+################################################################################################
+# Home Assistant vendor custom specific dictionary
+
+VENDOR			HomeAssistant			812300
+BEGIN-VENDOR	HomeAssistant
+ATTRIBUTE		Hass-Group				1	string
+ATTRIBUTE		Hass-Local-Only			2	byte
+ATTRIBUTE		Hass-Is-Active			3	byte
+END-VENDOR		HomeAssistant
