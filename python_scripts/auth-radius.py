@@ -38,29 +38,57 @@ except ImportError:
 
 def main():
     vendor = 812300
-    parser = argparse.ArgumentParser(description="Home Assistant RADIUS authentication via CLI")
-    parser.add_argument('-m', '--meta', action='store_true', help='Enable meta to output credentials to stdout')
+    parser = argparse.ArgumentParser(
+        prog='Auth RADIUS',
+        description='Home Assistant RADIUS authentication via CLI',
+        epilog='https://github.com/Losenmann/auth-radius'
+    )
+    parser.add_argument('-m', '--meta', action='store_true', help='enable meta to output credentials to stdout')
+    parser.add_argument('-U', '--username', type=str, help='username')
+    parser.add_argument('-P', '--password', type=str, help='user password')
+    parser.add_argument('-s', '--server', type=str, help='RADIUS server')
+    parser.add_argument('-S', '--secret', type=str, help='RADIUS secret')
     args = parser.parse_args()
 
-    if not os.path.isfile("/config/python_scripts/dictionary"):
+    if not os.path.isfile("/config/.storage/dictionary.radius"):
         if not args.meta:
             print("Create dictionary file")
-        f = open("/config/python_scripts/dictionary", "w")
+        f = open("/config/.storage/dictionary.radius", "w")
         f.write(base64.b64decode(DictFileBase64()).decode("utf-8"))
         f.close()
 
     with open("/config/secrets.yaml") as fh:
-       secret = yaml.load(fh, Loader=yaml.FullLoader)
+        secret = yaml.load(fh, Loader=yaml.FullLoader)
+    try:
+        v_username = args.username if args.username else os.environ['username']
+    except:
+        print("\033[33m{}\033[0m".format("Username not specified"))
+        sys.exit(1)
+    try:
+        v_password = args.password if args.password else os.environ['password']
+    except:
+        print("\033[33m{}\033[0m".format("User password not specified"))
+        sys.exit(1)
+    try:
+        v_server = args.server if args.server else secret['radius_server']
+    except:
+        print("\033[33m{}\033[0m".format("Server not specified"))
+        sys.exit(1)
+    try:
+        v_secret = args.secret if args.secret else secret['radius_secret']
+    except:
+        print("\033[33m{}\033[0m".format("Server secret not specified"))
+        sys.exit(1)
 
     srv = Client(
-        server=bytes(secret["radius_host"], encoding="utf-8"),
-        secret=bytes(secret["radius_secret"], encoding="utf-8"),
-        dict=Dictionary("/config/python_scripts/dictionary")
+        server=bytes(v_server, encoding="utf-8"),
+        secret=bytes(v_secret, encoding="utf-8"),
+        dict=Dictionary("/config/.storage/dictionary.radius")
     )
 
     req = srv.CreateAuthPacket(code=AccessRequest)
-    req["User-Name"] = os.environ['username']
-    req["User-Password"] = req.PwCrypt(os.environ['password'])
+    req["User-Name"] = v_username
+    req["User-Password"] = req.PwCrypt(v_password)
 
     try:
         if not args.meta:
@@ -76,20 +104,24 @@ def main():
         sys.exit(1)
 
     if reply.code == AccessAccept:
-        v_local_only = "false"
-        if int(reply[(vendor, 2)][0].hex(), 16) > 0:
-            v_local_only = "true"
-        if args.meta:
-            print("name=" + req["User-Name"][0])
-            print("group=" + reply[(vendor, 1)][0].decode("utf-8"))
-            print("local_only=" + v_local_only)
-            print("is_activ=" + "true")
+        if reply[(vendor, 1)][0].decode("utf-8") in ['system-admin', 'system-users']:
+            v_local_only = "false"
+            if int(reply[(vendor, 2)][0].hex(), 16) > 0:
+                v_local_only = "true"
+            if args.meta:
+                print("name=" + req["User-Name"][0])
+                print("group=" + reply[(vendor, 1)][0].decode("utf-8"))
+                print("local_only=" + v_local_only)
+                print("is_activ=" + "true")
+            else:
+                print("\033[32m{}\033[0m".format("Access accepted"))
+            exit(0)
         else:
-            print("Access accepted")
-        exit(0)
+            if not args.meta:
+                print("\033[31m{}\033[0m".format("Insufficient access rights"))
     else:
         if not args.meta:
-            print("Access denied")
+            print("\033[31m{}\033[0m".format("Access denied"))
         exit(1)
 
 """bidict.py"""
