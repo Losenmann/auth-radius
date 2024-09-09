@@ -61,6 +61,9 @@ Or run via Python `python ./python_scripts/auth-radius.py`
 ```
 
 ## Script arguments
+> [!IMPORTANT]
+> When using keys, keys take precedence over values ​​from secret.yaml and variables passed from Home Assistant
+
 | key  | type | description |
 | :--- | :--: | :---------- |
 | `-h` | boolean | Get help information |
