@@ -38,6 +38,7 @@ except ImportError:
 
 def main():
     vendor = 812300
+    dictionary = "/config/.storage/dictionary_radius"
     parser = argparse.ArgumentParser(
         prog='Auth RADIUS',
         description='Home Assistant RADIUS authentication via CLI',
@@ -50,10 +51,10 @@ def main():
     parser.add_argument('-S', '--secret', type=str, help='RADIUS secret')
     args = parser.parse_args()
 
-    if not os.path.isfile("/config/.storage/dictionary.radius"):
+    if not os.path.isfile(dictionary):
         if not args.meta:
             print("Create dictionary file")
-        f = open("/config/.storage/dictionary.radius", "w")
+        f = open(dictionary, "w")
         f.write(base64.b64decode(DictFileBase64()).decode("utf-8"))
         f.close()
 
@@ -83,7 +84,7 @@ def main():
     srv = Client(
         server=bytes(v_server, encoding="utf-8"),
         secret=bytes(v_secret, encoding="utf-8"),
-        dict=Dictionary("/config/.storage/dictionary.radius")
+        dict=Dictionary(dictionary)
     )
 
     req = srv.CreateAuthPacket(code=AccessRequest)
@@ -104,15 +105,24 @@ def main():
         sys.exit(1)
 
     if reply.code == AccessAccept:
-        if reply[(vendor, 1)][0].decode("utf-8") in ['system-admin', 'system-users']:
+        try:
+            v_local_only = str(bool(int(reply[(vendor, 2)][0].hex(), 16))).lower()
+        except:
             v_local_only = "false"
-            if int(reply[(vendor, 2)][0].hex(), 16) > 0:
-                v_local_only = "true"
+        try:
+            v_is_active = str(bool(int(reply[(vendor, 3)][0].hex(), 16))).lower()
+        except:
+            v_is_active = "true"
+        try:
+            v_group = reply[(vendor, 1)][0].decode("utf-8")
+        except:
+            v_group = None
+        if v_group in ['system-admin', 'system-users']:
             if args.meta:
                 print("name=" + req["User-Name"][0])
-                print("group=" + reply[(vendor, 1)][0].decode("utf-8"))
+                print("group=" + v_group)
                 print("local_only=" + v_local_only)
-                print("is_activ=" + "true")
+                print("is_activ=" + v_is_active)
             else:
                 print("\033[32m{}\033[0m".format("Access accepted"))
             exit(0)
